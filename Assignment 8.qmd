@@ -1,0 +1,72 @@
+---
+title: "Assignment 8"
+author: "Kinga Kurowska"
+date: 07.05.2025
+format: html
+editor: visual
+---
+
+The plot I decided to improve is figure 1 from [Shorter birth intervals between siblings are associated with increased risk of parental divorce](https://pmc.ncbi.nlm.nih.gov/articles/PMC6993964/):
+
+![](images/clipboard-4255918145.png){width="570"}
+
+The problem here is unreadability because of using different line style instead of different colors.
+
+### 1. Generating Data
+
+```{r}
+
+library(ggplot2)
+library(dplyr)
+library(tidyr)
+```
+
+In the article there were not full details given. There were only given endpoints in 10 years for interbirth intervals \<1.5 years and \>4 years. Therefore I generated data using these information.
+
+Firstly, I assigned endpoints for each IBI group based on given data. Then I defined a logistic growth function to simulate cumulative divorce risk over time. 'k' is the steepness, 'midpoint' is the inflection point.
+
+```{r}
+end_values <- c(
+  `< 1.5 years` = 0.26,
+  `1.5–2 years` = 0.22,
+  `2–3 years` = 0.20,
+  `3–4 years` = 0.19,
+  `More than 4 years` = 0.18
+)
+
+
+logistic_curve <- function(time, max_val, k = 0.5, midpoint = 5) {
+  max_val / (1 + exp(-k * (time - midpoint)))
+}
+```
+
+Then based of that I generated data. I used expand_grid() to generate all combinations of 'Years' x 'IBI', and than calculated Divorce Rate for each combination.
+
+```{r}
+data <- expand_grid(
+  Years = seq(0, 10, by = 0.1),
+  IBI = factor(names(end_values))
+) %>%
+  mutate(DivorceRate = logistic_curve(Years, max_val = end_values[IBI]))
+```
+
+### 2. Making a plot
+
+I generated line plot with 'Years' on x axis and 'DivorceRate'\*100 on y axis to obtain percentage value. I grouped data by IBI and labeled it by different colors.
+
+I used minimal theme and made some adjustment like centering the title and moving legend below the plot fo aesthetic.
+
+```{r}
+ggplot(data, aes(x = Years, y = DivorceRate*100, color = IBI)) +
+  geom_line(size=1) +
+  labs(
+    title = "Cumulative risk of divorce by interbirth interval categories",
+    x = "Years since second child birth",
+    y = "Percentage divorced"
+  ) +
+  theme_minimal()+
+  theme(
+    plot.title = element_text(hjust = 0.5), 
+    legend.position = "bottom",
+    )
+```
